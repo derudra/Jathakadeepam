@@ -14,8 +14,8 @@ from google.genai import types
 
 
 # =========================================================
-# JATHAKADEEPAM V3
-# Horoscope calculation + verification + Gemini consultation
+# JATHAKADEEPAM V3.1
+# Horoscope calculation + verification + Gemini consultation + storage fix
 # =========================================================
 
 APP_VERSION = 3
@@ -1174,11 +1174,24 @@ def build_device_state() -> dict:
     return payload
 
 
+# Streamlit does not allow the same component key to be mounted twice
+# during one script run. Several UI branches can request a memory sync,
+# so guard the component mount and allow only one storage operation per rerun.
+_device_sync_mounted_this_run = False
+
+
 def sync_device_memory():
+    global _device_sync_mounted_this_run
+
+    if _device_sync_mounted_this_run:
+        return
+
     if not st.session_state.device_memory_loaded:
         return
 
     if st.session_state.pending_storage_clear:
+        _device_sync_mounted_this_run = True
+
         device_storage_component(
             data={
                 "action": "clear",
@@ -1190,6 +1203,8 @@ def sync_device_memory():
         return
 
     if st.session_state.remember_device:
+        _device_sync_mounted_this_run = True
+
         device_storage_component(
             data={
                 "action": "save",
@@ -1354,7 +1369,7 @@ if st.session_state.astrology_data is None:
 
         generate = st.form_submit_button(
             "Generate Jathakam →",
-            use_container_width=True,
+            width="stretch",
         )
 
     if st.session_state.cache_was_expired:
@@ -1368,7 +1383,7 @@ if st.session_state.astrology_data is None:
     if st.session_state.saved_profile:
         if st.button(
             "Forget saved device data",
-            use_container_width=False,
+            width="content",
         ):
             forget_device_data()
             st.toast("Saved JathakaDeepam data cleared from this device.")
@@ -1585,7 +1600,7 @@ if (
         st.dataframe(
             rows,
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
 
     st.markdown(
@@ -1619,7 +1634,7 @@ if (
                 for item in yoga_details
             ],
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
 
     st.markdown(
@@ -1653,7 +1668,7 @@ if (
     st.dataframe(
         planet_rows,
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
     st.caption(
@@ -1695,7 +1710,7 @@ if (
         if st.button(
             "✓ Approve & Start Consultation →",
             type="primary",
-            use_container_width=True,
+            width="stretch",
         ):
             st.session_state.calculation_verified = True
 
@@ -1711,7 +1726,7 @@ if (
     with a2:
         if st.button(
             "↻ Change Birth Details",
-            use_container_width=True,
+            width="stretch",
         ):
             clear_active_chart(keep_saved_profile=True)
             st.rerun()
@@ -1775,7 +1790,7 @@ if (
     with top1:
         if st.button(
             "← Review Horoscope",
-            use_container_width=True,
+            width="stretch",
         ):
             st.session_state.calculation_verified = False
             st.rerun()
@@ -1783,7 +1798,7 @@ if (
     with top2:
         if st.button(
             "Clear Chat",
-            use_container_width=True,
+            width="stretch",
         ):
             st.session_state.chat_messages = [{
                 "role": "assistant",
@@ -1795,7 +1810,7 @@ if (
     with top3:
         if st.button(
             "New Jathakam",
-            use_container_width=True,
+            width="stretch",
         ):
             clear_active_chart(keep_saved_profile=False)
             st.rerun()
@@ -1825,7 +1840,7 @@ if (
                 if st.button(
                     label,
                     key=f"quick_{idx}",
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     pending_prompt = question
 
